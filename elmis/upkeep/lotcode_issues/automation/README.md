@@ -1,6 +1,6 @@
 # DevOps Tools and Docs - MoH Gambia
 
-A set of python scripts to automate the fixing of lotcode issues in the in the eLMIS system caused by the Master Data upload.
+A set of python scripts to automate the fixing of lotcode issues in the eLMIS system caused by the Master Data upload.
 <br>
 <br>
 
