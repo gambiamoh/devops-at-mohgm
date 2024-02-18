@@ -4,6 +4,8 @@ __pycache__/
 *$py.class
 
 # local files
+upkeep/lotcode_issues/automation/*.csv
+upkeep/lotcode_issues/automation/data/*.json
 upkeep/lotcode_issues/automation/data/*.json
 upkeep/lotcode_issues/automation/data/*.csv
 
