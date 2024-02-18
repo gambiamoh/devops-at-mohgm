@@ -53,6 +53,6 @@ for inventory in inventories:
                                 ]["tradeItem"]
 
 try:
-    trade_items.to_csv("processed/fixed_tradeitems.csv", index=False)
+    trade_items.to_csv("fixed_tradeitems.csv", index=False)
 except Exception as e:
     print(f"Error while saving CSV file: {e}")
