@@ -1,4 +1,4 @@
-# DevOps Tools and Docs - MoH Gambia
+# eLMIS Lotcode Issues Fixer
 
 A set of python scripts to automate the fixing of lotcode issues in the eLMIS system caused by the Master Data upload.
 <br>
