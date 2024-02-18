@@ -3,11 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#
+.DS_Store
+
 # local files
-upkeep/lotcode_issues/automation/*.csv
-upkeep/lotcode_issues/automation/data/*.json
-upkeep/lotcode_issues/automation/data/*.json
-upkeep/lotcode_issues/automation/data/*.csv
+elmis/upkeep/lotcode_issues/processed/*
+
+
 
 # C extensions
 *.so
