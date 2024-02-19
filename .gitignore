@@ -8,6 +8,8 @@ __pycache__/
 
 # local files
 elmis/upkeep/lotcode_issues/processed/*
+elmis/upkeep/lotcode_issues/data/*
+elmis/upkeep/lotcode_issues/.env
 
 
 
