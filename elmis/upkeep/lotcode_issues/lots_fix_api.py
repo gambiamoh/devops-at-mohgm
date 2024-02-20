@@ -39,6 +39,19 @@ def load_credentials():
     return username, password, base_url, auth_header
 
 
+def load_headers():
+    try:
+        username, password, base_url, auth_header = load_credentials()
+        headers = {"Authorization": auth_header}
+        token = get_token(base_url, headers, username, password)
+        headers["Authorization"] = f"Bearer {token}"
+        headers["Content-Type"] = "application/json"
+        return headers
+    except Exception as e:
+        logging.error(f"Failed to get token: {e}")
+        return None
+
+
 def get_token(base_url, headers, username, password):
     auth_response = make_request(
         f"{base_url}/api/oauth/token?grant_type=password",
@@ -49,50 +62,64 @@ def get_token(base_url, headers, username, password):
     return auth_response["access_token"]
 
 
-def get_data(base_url, headers):
-    facility = os.getenv("PHY_INV_FACILITY_ID")
-    is_draft = os.getenv("PHY_INV_IS_DRAFT")
-    program = os.getenv("PHY_INV_PROGRAM_ID")
-    orderables = make_request(f"{base_url}/api/orderables", headers=headers)
-    lots = make_request(f"{base_url}/api/lots", headers=headers)
-    inventories = make_request(
-        f"{base_url}/api/physicalInventories?facility={facility}&isDraft={is_draft}&program={program}",
-        headers=headers,
-    )
+def get_data():
+    # reading reference data from local dumps
+    with open("data/orderables.json", "r") as f:
+        orderables = json.load(f)["content"]
+    with open("data/lots.json", "r") as f:
+        lots = json.load(f)["content"]
+    with open("data/physicalInventories.json", "r") as f:
+        inventories = json.load(f)
+
     return orderables, lots, inventories
 
 
 def process_data(df, orderables, lots, inventories, base_url, headers):
+    df_orderables = pd.DataFrame(orderables)
+    df_lots = pd.DataFrame(lots)
+
     for inventory in inventories:
         for line_item in inventory["lineItems"]:
             if line_item["lotId"] is None:
                 row = df[df["orderableid"] == line_item["orderableId"]]
-                orderable = next(
-                    (o for o in orderables if o["id"] == row["orderableid"].values[0]),
-                    None,
-                )
 
-                if (
-                    orderable
-                    and orderable["identifiers"]["tradeItem"]
-                    != row["tradeitemid"].values[0]
-                ):
-                    df.loc[
-                        df["orderableid"] == line_item["orderableId"], "tradeitemid"
-                    ] = orderable["identifiers"]["tradeItem"]
+                if not row.empty:
+                    product_code = row["productCode"].values[0]
+                    lot_code = row["lotcode"].values[0]
+                    csv_trade_item_id = row["tradeitemid"].values[0]
 
-                    for lot in lots:
-                        if (
-                            lot["lotCode"] == row["lotcode"].values[0]
-                            and lot["tradeItemId"] != row["tradeitemid"].values[0]
-                        ):
-                            lot["tradeItemId"] = row["tradeitemid"].values[0]
-                            make_request(
-                                f'{base_url}/api/lots/{lot["id"]}',
-                                headers=headers,
-                                method="put",
-                                data=lot,
-                            )
+                    orderable = df_orderables[
+                        df_orderables["productCode"] == product_code
+                    ].iloc[0]
+                    orderable_trade_item_id = orderable["identifiers"]["tradeItem"]
+
+                    if csv_trade_item_id != orderable_trade_item_id:
+                        df.loc[df["productCode"] == product_code, "tradeitemid"] = (
+                            orderable_trade_item_id
+                        )
+
+                        for lot in lots:
+                            if (
+                                lot["lotCode"] == lot_code
+                                and lot["tradeItemId"] != orderable_trade_item_id
+                            ):
+                                lot["tradeItemId"] = orderable_trade_item_id
+
+    with open("updated_lots.json", "w") as f:
+        json.dump(lots, f)
+    print(headers)
+
+    for i, lot in enumerate(lots):
+        try:
+            make_request(
+                f"{base_url}/api/lots/{lot['id']}",
+                headers=headers,
+                method="put",
+                data=lot,
+            )
+            logging.info(f"Successfully updated lot {i+1} of {len(lots)}")
+        except Exception as e:
+            logging.error(f"Failed to update lot {lot['id']}: {str(e)}, {headers}")
 
 
 def main():
@@ -101,10 +128,12 @@ def main():
     that occured after the Essential Medicines Master Data upload.
     This is the version that gets data and makes update via the REST API.
 
-    API Endpoints:
-    - /orderables: all orderables
+    Local files:
+    - orderables.json: all orderables from /orderables endpoint
 
-    - /physicalInventories: all physicalIventories
+    - physicalInventories.json: all physicalIventories from /physicalInventories endpoint
+
+    - lots.json: all lots from /lots endpoint
 
     - orderables_tradeitems_lotcode.csv: CSV file containing the orderableId, productCode, lotCode, and tradeItemId
     from the DB.
@@ -118,11 +147,12 @@ def main():
         return
 
     headers["Authorization"] = f"Bearer {token}"
+    headers["Content-Type"] = "application/json"
 
     df = pd.read_csv("data/orderables_tradeItems_lotCode.csv")
 
     try:
-        orderables, lots, inventories = get_data(base_url, headers)
+        orderables, lots, inventories = get_data()
     except Exception as e:
         logging.error(f"Failed to get data: {e}")
         return
@@ -133,6 +163,7 @@ def main():
         logging.error(f"Failed to process data: {e}")
         return
 
+    print(lots)
     df.to_csv("processed_tradeitems.csv", index=False)
 
 

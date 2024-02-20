@@ -10,7 +10,8 @@ __pycache__/
 elmis/upkeep/lotcode_issues/processed/*
 elmis/upkeep/lotcode_issues/data/*
 elmis/upkeep/lotcode_issues/.env
-
+elmis/upkeep/lotcode_issues/*.csv
+elmis/upkeep/lotcode_issues/*.json
 
 
 # C extensions
