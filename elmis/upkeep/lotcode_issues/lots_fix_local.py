@@ -36,7 +36,7 @@ except FileNotFoundError:
 
 for inventory in inventories:
     for line_item in inventory["lineItems"]:
-        if line_item["stockOnHand"] is None:
+        if line_item["lotCode"] is None:
             orderable_id = line_item["orderableId"]
 
             for index, trade_item in trade_items.iterrows():
